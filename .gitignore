@@ -226,3 +226,6 @@ data/processed/
 # Generated outputs
 outputs/
 
+# Trained model artifacts
+models/
+
