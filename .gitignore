@@ -219,3 +219,10 @@ __marimo__/
 
 .idea/
 
+# Project data files
+data/raw/
+data/processed/
+
+# Generated outputs
+outputs/
+
