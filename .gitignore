@@ -224,8 +224,17 @@ data/raw/
 data/processed/
 
 # Generated outputs
-outputs/
+/outputs/*
+!/outputs/
+!/outputs/transformer_sentiment_metrics.json
+!/outputs/transformer_sentiment_classification_report.txt
+!/outputs/baseline_sentiment_report.txt
+!/outputs/baseline_sentiment_confusion_matrix.csv
+!/outputs/sentiment_distribution_summary.csv
+!/outputs/issue_distribution_summary.csv
+!/outputs/issue_sentiment_crosstab.csv
+!/outputs/negative_issue_distribution.csv
 
 # Trained model artifacts
-models/
+/models/
 
