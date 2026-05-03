@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mobile Feedback Analysis Demo</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            margin: 0;
+            padding: 0;
+            color: #1f2937;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 24px;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+        .header h1 {
+            margin: 0 0 8px 0;
+            font-size: 32px;
+            color: #111827;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 16px;
+            color: #6b7280;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            resize: vertical;
+            padding: 14px;
+            font-size: 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 16px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group input {
+            width: 140px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+        }
+
+        button {
+            margin-top: 22px;
+            padding: 11px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            color: white;
+            background: #2563eb;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .example-button {
+            margin-top: 0;
+            background: #eef2ff;
+            color: #3730a3;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+
+        .example-button:hover {
+            background: #e0e7ff;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .result-box {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 18px;
+            background: #f9fafb;
+        }
+
+        .result-box h3 {
+            margin: 0 0 12px 0;
+            font-size: 18px;
+            color: #111827;
+        }
+
+        .label-value {
+            margin: 8px 0;
+            font-size: 15px;
+        }
+
+        .label-value strong {
+            color: #374151;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .badge.negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.neutral {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.positive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .issue-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .issue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .issue-item:last-child {
+            border-bottom: none;
+        }
+
+        .bar-wrapper {
+            width: 150px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-left: 12px;
+        }
+
+        .bar {
+            height: 100%;
+            background: #2563eb;
+        }
+
+        .issue-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .error {
+            color: #991b1b;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .raw-json {
+            white-space: pre-wrap;
+            background: #111827;
+            color: #e5e7eb;
+            padding: 16px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-size: 13px;
+        }
+
+        .cluster-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 18px;
+            background: #f9fafb;
+            margin-bottom: 16px;
+        }
+
+        .cluster-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .cluster-title h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #111827;
+        }
+
+        .cluster-meta {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 6px 0;
+        }
+
+        .keyword-line {
+            font-size: 14px;
+            color: #374151;
+            margin: 8px 0;
+        }
+
+        .review-list {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .review-list li {
+            margin-bottom: 8px;
+            line-height: 1.45;
+        }
+
+        .cluster-size-badge {
+            white-space: nowrap;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .section-subtitle {
+            color: #6b7280;
+            margin-top: 0;
+            line-height: 1.5;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 24px 0;
+        }
+
+        @media (max-width: 800px) {
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                margin: 20px auto;
+                padding: 16px;
+            }
+
+            .cluster-title {
+                flex-direction: column;
+            }
+
+            .bar-wrapper {
+                width: 100px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Mobile Feedback Analysis Demo</h1>
+            <p>
+                Transformer-based sentiment classification, issue triage, and complaint theme discovery
+                for mobile phone customer reviews.
+            </p>
+        </div>
+
+        <div class="card">
+            <h2>Single Review Analysis</h2>
+            <p class="section-subtitle">
+                Enter one customer review to predict sentiment, primary issue, and Top-K issue candidates.
+            </p>
+
+            <label for="reviewText">Customer Review</label>
+            <textarea id="reviewText">The phone freezes all the time and the battery dies quickly.</textarea>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="topK">Top-K</label>
+                    <input id="topK" type="number" min="1" max="10" value="5" />
+                </div>
+
+                <div class="control-group">
+                    <label for="minConfidence">Min Candidate Confidence</label>
+                    <input id="minConfidence" type="number" min="0" max="1" step="0.01" value="0.10" />
+                </div>
+
+                <div class="control-group">
+                    <label for="dominantThreshold">Dominant Threshold</label>
+                    <input id="dominantThreshold" type="number" min="0" max="1" step="0.01" value="0.80" />
+                </div>
+
+                <button id="analyzeButton" onclick="analyzeReview()">Analyze Review</button>
+            </div>
+
+            <div class="examples">
+                <button class="example-button" onclick="setExample('The battery dies very quickly and does not hold charge.')">Battery issue</button>
+                <button class="example-button" onclick="setExample('The phone is locked and cannot be used with my SIM card.')">Network issue</button>
+                <button class="example-button" onclick="setExample('Great phone for the price. It works well and arrived quickly.')">Positive review</button>
+                <button class="example-button" onclick="setExample('The screen arrived cracked and the display went black after one day.')">Screen issue</button>
+                <button class="example-button" onclick="setExample('Customer service refused my refund request and never replied.')">Service issue</button>
+            </div>
+
+            <div id="errorBox" class="error hidden"></div>
+        </div>
+
+        <div id="resultCard" class="card hidden">
+            <h2>Prediction Result</h2>
+
+            <div class="result-grid">
+                <div class="result-box">
+                    <h3>Sentiment Analysis</h3>
+                    <div class="label-value">
+                        <strong>Sentiment:</strong>
+                        <span id="sentimentLabel" class="badge"></span>
+                    </div>
+                    <div class="label-value">
+                        <strong>Confidence:</strong>
+                        <span id="sentimentConfidence"></span>
+                    </div>
+                </div>
+
+                <div class="result-box">
+                    <h3>Primary Issue</h3>
+                    <div class="label-value">
+                        <strong>Issue:</strong>
+                        <span id="primaryIssue" class="badge"></span>
+                    </div>
+                    <div class="label-value">
+                        <strong>Confidence:</strong>
+                        <span id="primaryIssueConfidence"></span>
+                    </div>
+                    <div class="label-value">
+                        <strong>Issue Mode:</strong>
+                        <span id="issueMode"></span>
+                    </div>
+                    <div class="label-value">
+                        <strong>Device:</strong>
+                        <span id="device"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-box" style="margin-top: 16px;">
+                <h3>Candidate Issue Predictions</h3>
+                <ul id="candidateIssues" class="issue-list"></ul>
+            </div>
+
+            <div class="result-box" style="margin-top: 16px;">
+                <h3>Raw Top-K Issue Predictions</h3>
+                <ul id="rawIssues" class="issue-list"></ul>
+            </div>
+        </div>
+
+        <div id="jsonCard" class="card hidden">
+            <h2>Raw API Response</h2>
+            <div id="rawJson" class="raw-json"></div>
+        </div>
+
+        <div class="card">
+            <h2>Complaint Theme Discovery</h2>
+            <p class="section-subtitle">
+                Explore recurring complaint clusters discovered from negative reviews using sentence embeddings
+                and MiniBatchKMeans clustering.
+            </p>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="clusterLimit">Cluster Limit</label>
+                    <input id="clusterLimit" type="number" min="1" max="50" value="20" />
+                </div>
+
+                <button id="loadClustersButton" onclick="loadClusters()">Load Complaint Clusters</button>
+            </div>
+
+            <div id="clusterErrorBox" class="error hidden"></div>
+            <div id="clusterContainer" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000/predict";
+        const CLUSTER_API_URL = "http://127.0.0.1:8000/clusters";
+
+        function setExample(text) {
+            document.getElementById("reviewText").value = text;
+        }
+
+        function formatPercent(value) {
+            return (value * 100).toFixed(2) + "%";
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) {
+                return "";
+            }
+
+            return String(text)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function setSentimentBadge(label) {
+            const el = document.getElementById("sentimentLabel");
+            el.textContent = label;
+            el.className = "badge";
+
+            if (label === "negative") {
+                el.classList.add("negative");
+            } else if (label === "neutral") {
+                el.classList.add("neutral");
+            } else if (label === "positive") {
+                el.classList.add("positive");
+            }
+        }
+
+        function renderIssueList(elementId, issues) {
+            const list = document.getElementById(elementId);
+            list.innerHTML = "";
+
+            issues.forEach(item => {
+                const li = document.createElement("li");
+                li.className = "issue-item";
+
+                const left = document.createElement("span");
+                left.textContent = `${item.rank}. ${item.label}`;
+
+                const right = document.createElement("div");
+                right.className = "issue-right";
+
+                const confidence = document.createElement("span");
+                confidence.textContent = formatPercent(item.confidence);
+
+                const barWrapper = document.createElement("div");
+                barWrapper.className = "bar-wrapper";
+
+                const bar = document.createElement("div");
+                bar.className = "bar";
+                bar.style.width = `${Math.max(0, Math.min(100, item.confidence * 100))}%`;
+
+                barWrapper.appendChild(bar);
+                right.appendChild(confidence);
+                right.appendChild(barWrapper);
+
+                li.appendChild(left);
+                li.appendChild(right);
+                list.appendChild(li);
+            });
+        }
+
+        async function analyzeReview() {
+            const text = document.getElementById("reviewText").value.trim();
+            const topK = Number(document.getElementById("topK").value);
+            const minConfidence = Number(document.getElementById("minConfidence").value);
+            const dominantThreshold = Number(document.getElementById("dominantThreshold").value);
+
+            const button = document.getElementById("analyzeButton");
+            const errorBox = document.getElementById("errorBox");
+            const resultCard = document.getElementById("resultCard");
+            const jsonCard = document.getElementById("jsonCard");
+
+            errorBox.classList.add("hidden");
+            errorBox.textContent = "";
+
+            if (!text) {
+                errorBox.textContent = "Please enter a customer review.";
+                errorBox.classList.remove("hidden");
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = "Analyzing...";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        top_k: topK,
+                        min_candidate_confidence: minConfidence,
+                        dominant_threshold: dominantThreshold
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                setSentimentBadge(data.sentiment_label);
+                document.getElementById("sentimentConfidence").textContent = formatPercent(data.sentiment_confidence);
+
+                document.getElementById("primaryIssue").textContent = data.primary_issue_label;
+                document.getElementById("primaryIssueConfidence").textContent = formatPercent(data.primary_issue_confidence);
+                document.getElementById("issueMode").textContent = data.issue_mode;
+                document.getElementById("device").textContent = data.device;
+
+                renderIssueList("candidateIssues", data.candidate_issues);
+                renderIssueList("rawIssues", data.ranked_issue_predictions);
+
+                document.getElementById("rawJson").textContent = JSON.stringify(data, null, 2);
+
+                resultCard.classList.remove("hidden");
+                jsonCard.classList.remove("hidden");
+            } catch (error) {
+                errorBox.textContent =
+                    "Failed to call API. Please make sure FastAPI is running at http://127.0.0.1:8000. Error: " +
+                    error.message;
+                errorBox.classList.remove("hidden");
+            } finally {
+                button.disabled = false;
+                button.textContent = "Analyze Review";
+            }
+        }
+
+        async function loadClusters() {
+            const limit = Number(document.getElementById("clusterLimit").value);
+            const errorBox = document.getElementById("clusterErrorBox");
+            const container = document.getElementById("clusterContainer");
+            const button = document.getElementById("loadClustersButton");
+
+            errorBox.classList.add("hidden");
+            errorBox.textContent = "";
+            container.innerHTML = "Loading clusters...";
+
+            button.disabled = true;
+            button.textContent = "Loading...";
+
+            try {
+                const response = await fetch(`${CLUSTER_API_URL}?limit=${limit}`);
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.clusters || data.clusters.length === 0) {
+                    container.innerHTML = "<p>No clusters found.</p>";
+                    return;
+                }
+
+                container.innerHTML = "";
+
+                data.clusters.forEach(cluster => {
+                    const reviews = cluster.representative_reviews || [];
+
+                    const reviewHtml = reviews.length > 0
+                        ? `
+                            <ol class="review-list">
+                                ${reviews.map(review => `<li>${escapeHtml(review)}</li>`).join("")}
+                            </ol>
+                        `
+                        : `<p class="cluster-meta">No representative reviews available.</p>`;
+
+                    const card = document.createElement("div");
+                    card.className = "cluster-card";
+
+                    card.innerHTML = `
+                        <div class="cluster-title">
+                            <h3>Cluster ${cluster.cluster_id}: ${escapeHtml(cluster.cluster_theme)}</h3>
+                            <span class="cluster-size-badge">${cluster.cluster_size} reviews</span>
+                        </div>
+
+                        <div class="cluster-meta">
+                            <strong>Major Issue:</strong> ${escapeHtml(cluster.major_issue)}
+                        </div>
+
+                        <div class="keyword-line">
+                            <strong>Keywords:</strong> ${escapeHtml(cluster.top_keywords)}
+                        </div>
+
+                        <div class="cluster-meta">
+                            <strong>Representative Reviews:</strong>
+                        </div>
+
+                        ${reviewHtml}
+                    `;
+
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.innerHTML = "";
+                errorBox.textContent =
+                    "Failed to load clusters. Please make sure FastAPI is running and /clusters is available. Error: " +
+                    error.message;
+                errorBox.classList.remove("hidden");
+            } finally {
+                button.disabled = false;
+                button.textContent = "Load Complaint Clusters";
+            }
+        }
+    </script>
+</body>
+</html>
