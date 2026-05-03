@@ -17,6 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SENTIMENT_MODEL_DIR = PROJECT_ROOT / "models" / "transformer_sentiment"
 ISSUE_MODEL_DIR = PROJECT_ROOT / "models" / "transformer_issue"
 CLUSTER_SUMMARY_PATH = PROJECT_ROOT / "outputs" / "clustering" / "cluster_summary_labeled.csv"
+PRIORITY_SCORE_PATH = PROJECT_ROOT / "outputs" / "priority" / "priority_scores.csv"
 
 
 DEFAULT_SENTIMENT_ID2LABEL = {
@@ -78,6 +79,21 @@ class ClusterItem(BaseModel):
 class ClusterResponse(BaseModel):
     total_clusters: int
     clusters: List[ClusterItem]
+
+class PriorityItem(BaseModel):
+    priority_rank: int
+    cluster_id: int
+    cluster_theme: str
+    priority_score: float
+    cluster_size: int
+    major_issue: str
+    top_keywords: str
+    representative_reviews: List[str]
+
+
+class PriorityResponse(BaseModel):
+    total_priority_items: int
+    priority_items: List[PriorityItem]
 
 
 def load_label_mapping(model_dir: Path, default_id2label: Dict[int, str]) -> Dict[int, str]:
@@ -272,6 +288,7 @@ def health_check():
         "sentiment_model_exists": SENTIMENT_MODEL_DIR.exists(),
         "issue_model_exists": ISSUE_MODEL_DIR.exists(),
         "cluster_summary_exists": CLUSTER_SUMMARY_PATH.exists(),
+        "priority_score_exists": PRIORITY_SCORE_PATH.exists(),
     }
 
 
@@ -370,4 +387,69 @@ def get_clusters(limit: int = 20):
     return {
         "total_clusters": len(clusters),
         "clusters": clusters,
+    }
+
+@app.get("/priority", response_model=PriorityResponse)
+def get_priority_items(limit: int = 10):
+    if not PRIORITY_SCORE_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Priority score file not found: {PRIORITY_SCORE_PATH}",
+        )
+
+    try:
+        df = pd.read_csv(PRIORITY_SCORE_PATH)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to read priority score file: {str(e)}",
+        )
+
+    required_cols = [
+        "priority_rank",
+        "cluster_id",
+        "cluster_theme",
+        "priority_score",
+        "cluster_size",
+        "major_issue",
+        "top_keywords",
+    ]
+
+    for col in required_cols:
+        if col not in df.columns:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Priority score file missing required column: {col}",
+            )
+
+    df = df.sort_values(by="priority_rank", ascending=True).head(limit)
+
+    priority_items = []
+
+    for _, row in df.iterrows():
+        representative_reviews = []
+
+        for i in range(1, 4):
+            col = f"representative_review_{i}"
+            if col in df.columns:
+                value = row.get(col, "")
+                if isinstance(value, str) and value.strip():
+                    representative_reviews.append(value.strip())
+
+        priority_items.append(
+            {
+                "priority_rank": int(row["priority_rank"]),
+                "cluster_id": int(row["cluster_id"]),
+                "cluster_theme": str(row["cluster_theme"]),
+                "priority_score": float(row["priority_score"]),
+                "cluster_size": int(row["cluster_size"]),
+                "major_issue": str(row["major_issue"]),
+                "top_keywords": str(row["top_keywords"]),
+                "representative_reviews": representative_reviews,
+            }
+        )
+
+    return {
+        "total_priority_items": len(priority_items),
+        "priority_items": priority_items,
     }
