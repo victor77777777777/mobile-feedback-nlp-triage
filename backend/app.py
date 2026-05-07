@@ -18,6 +18,7 @@ SENTIMENT_MODEL_DIR = PROJECT_ROOT / "models" / "transformer_sentiment"
 ISSUE_MODEL_DIR = PROJECT_ROOT / "models" / "transformer_issue"
 CLUSTER_SUMMARY_PATH = PROJECT_ROOT / "outputs" / "clustering" / "cluster_summary_labeled.csv"
 PRIORITY_SCORE_PATH = PROJECT_ROOT / "outputs" / "priority" / "priority_scores.csv"
+PM_REPORT_PATH = PROJECT_ROOT / "outputs" / "reports" / "pm_insight_report.md"
 
 
 DEFAULT_SENTIMENT_ID2LABEL = {
@@ -94,6 +95,10 @@ class PriorityItem(BaseModel):
 class PriorityResponse(BaseModel):
     total_priority_items: int
     priority_items: List[PriorityItem]
+
+class PMReportResponse(BaseModel):
+    report_path: str
+    content: str
 
 
 def load_label_mapping(model_dir: Path, default_id2label: Dict[int, str]) -> Dict[int, str]:
@@ -289,6 +294,7 @@ def health_check():
         "issue_model_exists": ISSUE_MODEL_DIR.exists(),
         "cluster_summary_exists": CLUSTER_SUMMARY_PATH.exists(),
         "priority_score_exists": PRIORITY_SCORE_PATH.exists(),
+        "pm_report_exists": PM_REPORT_PATH.exists(),
     }
 
 
@@ -452,4 +458,25 @@ def get_priority_items(limit: int = 10):
     return {
         "total_priority_items": len(priority_items),
         "priority_items": priority_items,
+    }
+
+@app.get("/pm-report", response_model=PMReportResponse)
+def get_pm_report():
+    if not PM_REPORT_PATH.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"PM insight report file not found: {PM_REPORT_PATH}",
+        )
+
+    try:
+        content = PM_REPORT_PATH.read_text(encoding="utf-8")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to read PM insight report: {str(e)}",
+        )
+
+    return {
+        "report_path": str(PM_REPORT_PATH),
+        "content": content,
     }

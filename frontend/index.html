@@ -34,6 +34,7 @@
             margin: 0;
             font-size: 16px;
             color: #6b7280;
+            line-height: 1.5;
         }
 
         .card {
@@ -242,7 +243,8 @@
             font-size: 13px;
         }
 
-        .cluster-card {
+        .cluster-card,
+        .priority-card {
             border: 1px solid #e5e7eb;
             border-radius: 14px;
             padding: 18px;
@@ -250,7 +252,8 @@
             margin-bottom: 16px;
         }
 
-        .cluster-title {
+        .cluster-title,
+        .priority-title {
             display: flex;
             justify-content: space-between;
             gap: 12px;
@@ -258,22 +261,26 @@
             margin-bottom: 8px;
         }
 
-        .cluster-title h3 {
+        .cluster-title h3,
+        .priority-title h3 {
             margin: 0;
             font-size: 18px;
             color: #111827;
         }
 
-        .cluster-meta {
+        .cluster-meta,
+        .priority-meta {
             font-size: 14px;
             color: #6b7280;
             margin: 6px 0;
+            line-height: 1.5;
         }
 
         .keyword-line {
             font-size: 14px;
             color: #374151;
             margin: 8px 0;
+            line-height: 1.5;
         }
 
         .review-list {
@@ -298,16 +305,39 @@
             font-size: 13px;
         }
 
+        .priority-score-badge {
+            white-space: nowrap;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
         .section-subtitle {
             color: #6b7280;
             margin-top: 0;
             line-height: 1.5;
         }
 
-        .divider {
-            height: 1px;
-            background: #e5e7eb;
-            margin: 24px 0;
+        .report-box {
+            white-space: pre-wrap;
+            background: #111827;
+            color: #e5e7eb;
+            padding: 18px;
+            border-radius: 14px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.55;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .report-path {
+            font-size: 13px;
+            color: #6b7280;
+            margin: 8px 0 16px 0;
         }
 
         @media (max-width: 800px) {
@@ -320,7 +350,8 @@
                 padding: 16px;
             }
 
-            .cluster-title {
+            .cluster-title,
+            .priority-title {
                 flex-direction: column;
             }
 
@@ -336,8 +367,8 @@
         <div class="header">
             <h1>Mobile Feedback Analysis Demo</h1>
             <p>
-                Transformer-based sentiment classification, issue triage, and complaint theme discovery
-                for mobile phone customer reviews.
+                Transformer-based sentiment classification, issue triage, complaint theme discovery,
+                priority scoring, and Product Manager insight reporting for mobile phone customer reviews.
             </p>
         </div>
 
@@ -353,7 +384,7 @@
             <div class="controls">
                 <div class="control-group">
                     <label for="topK">Top-K</label>
-                    <input id="topK" type="number" min="1" max="10" value="5" />
+                    <input id="topK" type="number" min="1" max="10" value="3" />
                 </div>
 
                 <div class="control-group">
@@ -443,7 +474,7 @@
             <div class="controls">
                 <div class="control-group">
                     <label for="clusterLimit">Cluster Limit</label>
-                    <input id="clusterLimit" type="number" min="1" max="50" value="20" />
+                    <input id="clusterLimit" type="number" min="1" max="50" value="5" />
                 </div>
 
                 <button id="loadClustersButton" onclick="loadClusters()">Load Complaint Clusters</button>
@@ -452,11 +483,49 @@
             <div id="clusterErrorBox" class="error hidden"></div>
             <div id="clusterContainer" style="margin-top: 20px;"></div>
         </div>
+
+        <div class="card">
+            <h2>Top Priority Issues</h2>
+            <p class="section-subtitle">
+                View prioritized complaint themes based on cluster size, issue concentration,
+                model confidence, and negative review ratio.
+            </p>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="priorityLimit">Priority Limit</label>
+                    <input id="priorityLimit" type="number" min="1" max="50" value="5" />
+                </div>
+
+                <button id="loadPriorityButton" onclick="loadPriorityIssues()">Load Priority Issues</button>
+            </div>
+
+            <div id="priorityErrorBox" class="error hidden"></div>
+            <div id="priorityContainer" style="margin-top: 20px;"></div>
+        </div>
+
+        <div class="card">
+            <h2>Product Manager Insight Report</h2>
+            <p class="section-subtitle">
+                Load the generated Markdown report that summarizes priority complaint themes,
+                representative evidence, recommended actions, product implications, and limitations.
+            </p>
+
+            <div class="controls">
+                <button id="loadPMReportButton" onclick="loadPMReport()">Load PM Insight Report</button>
+            </div>
+
+            <div id="pmReportErrorBox" class="error hidden"></div>
+            <div id="pmReportPath" class="report-path hidden"></div>
+            <div id="pmReportContainer" class="report-box hidden"></div>
+        </div>
     </div>
 
     <script>
         const API_URL = "http://127.0.0.1:8000/predict";
         const CLUSTER_API_URL = "http://127.0.0.1:8000/clusters";
+        const PRIORITY_API_URL = "http://127.0.0.1:8000/priority";
+        const PM_REPORT_API_URL = "http://127.0.0.1:8000/pm-report";
 
         function setExample(text) {
             document.getElementById("reviewText").value = text;
@@ -671,6 +740,129 @@
             } finally {
                 button.disabled = false;
                 button.textContent = "Load Complaint Clusters";
+            }
+        }
+
+        async function loadPriorityIssues() {
+            const limit = Number(document.getElementById("priorityLimit").value);
+            const errorBox = document.getElementById("priorityErrorBox");
+            const container = document.getElementById("priorityContainer");
+            const button = document.getElementById("loadPriorityButton");
+
+            errorBox.classList.add("hidden");
+            errorBox.textContent = "";
+            container.innerHTML = "Loading priority issues...";
+
+            button.disabled = true;
+            button.textContent = "Loading...";
+
+            try {
+                const response = await fetch(`${PRIORITY_API_URL}?limit=${limit}`);
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.priority_items || data.priority_items.length === 0) {
+                    container.innerHTML = "<p>No priority issues found.</p>";
+                    return;
+                }
+
+                container.innerHTML = "";
+
+                data.priority_items.forEach(item => {
+                    const reviews = item.representative_reviews || [];
+
+                    const reviewHtml = reviews.length > 0
+                        ? `
+                            <ol class="review-list">
+                                ${reviews.map(review => `<li>${escapeHtml(review)}</li>`).join("")}
+                            </ol>
+                        `
+                        : `<p class="priority-meta">No representative reviews available.</p>`;
+
+                    const card = document.createElement("div");
+                    card.className = "priority-card";
+
+                    card.innerHTML = `
+                        <div class="priority-title">
+                            <h3>#${item.priority_rank}: ${escapeHtml(item.cluster_theme)}</h3>
+                            <span class="priority-score-badge">Score ${Number(item.priority_score).toFixed(2)}</span>
+                        </div>
+
+                        <div class="priority-meta">
+                            <strong>Cluster ID:</strong> ${item.cluster_id}
+                            &nbsp; | &nbsp;
+                            <strong>Size:</strong> ${item.cluster_size} reviews
+                            &nbsp; | &nbsp;
+                            <strong>Major Issue:</strong> ${escapeHtml(item.major_issue)}
+                        </div>
+
+                        <div class="keyword-line">
+                            <strong>Keywords:</strong> ${escapeHtml(item.top_keywords)}
+                        </div>
+
+                        <div class="priority-meta">
+                            <strong>Representative Reviews:</strong>
+                        </div>
+
+                        ${reviewHtml}
+                    `;
+
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.innerHTML = "";
+                errorBox.textContent =
+                    "Failed to load priority issues. Please make sure FastAPI is running and /priority is available. Error: " +
+                    error.message;
+                errorBox.classList.remove("hidden");
+            } finally {
+                button.disabled = false;
+                button.textContent = "Load Priority Issues";
+            }
+        }
+
+        async function loadPMReport() {
+            const errorBox = document.getElementById("pmReportErrorBox");
+            const reportPath = document.getElementById("pmReportPath");
+            const container = document.getElementById("pmReportContainer");
+            const button = document.getElementById("loadPMReportButton");
+
+            errorBox.classList.add("hidden");
+            errorBox.textContent = "";
+            reportPath.classList.add("hidden");
+            reportPath.textContent = "";
+            container.classList.add("hidden");
+            container.textContent = "";
+
+            button.disabled = true;
+            button.textContent = "Loading...";
+
+            try {
+                const response = await fetch(PM_REPORT_API_URL);
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                reportPath.textContent = `Report file: ${data.report_path}`;
+                reportPath.classList.remove("hidden");
+
+                container.textContent = data.content;
+                container.classList.remove("hidden");
+            } catch (error) {
+                errorBox.textContent =
+                    "Failed to load PM report. Please make sure FastAPI is running and pm_insight_report.md exists. Error: " +
+                    error.message;
+                errorBox.classList.remove("hidden");
+            } finally {
+                button.disabled = false;
+                button.textContent = "Load PM Insight Report";
             }
         }
     </script>
